@@ -22,7 +22,7 @@ app.get("/", (req, res) => {
     res.send("Home Page");
   });
 
-  
+
 // Connect to DB and start server
 const PORT = process.env.PORT || 5000;
 mongoose
