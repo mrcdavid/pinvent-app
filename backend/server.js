@@ -6,6 +6,11 @@ const cors = require("cors");
 
 const app = express();
 
+// Middlewares
+app.use(express.json());
+app.use(cookieParser());
+app.use(express.urlencoded({ extended: false }));
+
 const PORT = process.env.PORT || 5000;
 
 // Connect to DB and start server
