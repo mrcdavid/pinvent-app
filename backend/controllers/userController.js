@@ -1,5 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const User = require('../models/userModel');
+const bcrypt = require("bycryptjs");
 
 const registerUser = asyncHandler( async(req, res) => {
    const {name, email, password} = req.body;
@@ -21,6 +22,11 @@ const registerUser = asyncHandler( async(req, res) => {
         res.status(400);
         throw new Error("Email has already been registered")
     }
+
+
+    // Hash password before saving to Database
+    const salt = await bycrypt.genSalt(10);
+    const hashedPassword = await bycrypt.hash(password, salt)
 
     // Create new user
     const user = await User.create({
