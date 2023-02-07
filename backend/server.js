@@ -36,9 +36,9 @@ mongoose
     .connect(process.env.MONGO_URI)
     .then(() => {
         app.listen(PORT, () => {
-            console.log(`Server started on port ${PORT}`);	
+            	
         })
     })
-    .catch((err) => console.log(err))
+    .catch((err) => {})
 
     mongoose.set('strictQuery', true);
