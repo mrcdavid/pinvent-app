@@ -29,16 +29,15 @@ app.get("/", (req, res) => {
 // Error Middleware
 app.use(errorHandler);
 
-
+mongoose.set('strictQuery', true);
 const PORT = process.env.PORT || 5000;
 // Connect to DB and start server
 mongoose
     .connect(process.env.MONGO_URI)
     .then(() => {
         app.listen(PORT, () => {
-            	
+        
         })
     })
     .catch((err) => {})
 
-    mongoose.set('strictQuery', true);
