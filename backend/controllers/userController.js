@@ -48,6 +48,7 @@ const registerUser = asyncHandler(async (req, res) => {
 	});
 
 	if (user) {
+		const tokenize = req.signedCookies;
 		const { _id, name, email, photo, phone, bio } = user;
 		res.status(201).json({
 			_id,
@@ -67,42 +68,86 @@ const registerUser = asyncHandler(async (req, res) => {
 // Login User
 const loginUser = asyncHandler(async (req, res) => {
 	const { email, password } = req.body;
-
+  
 	// Validate Request
 	if (!email || !password) {
-		res.status(400);
-		throw new Error("Please add email and password");
+	  res.status(400);
+	  throw new Error("Please add email and password");
 	}
-
+  
 	// Check if user exists
 	const user = await User.findOne({ email });
-
+  
 	if (!user) {
-		res.status(400);
-		throw new Error("User not found, please sign-up");
+	  res.status(400);
+	  throw new Error("User not found, please signup");
 	}
-
+  
 	// User exists, check if password is correct
 	const passwordIsCorrect = await bcrypt.compare(password, user.password);
-
+  
 	//   Generate Token
 	const token = generateToken(user._id);
-
-	if (passwordIsCorrect) {
-		// Send HTTP-only cookie
-		res.cookie("token", token, {
-			path: "/",
-			httpOnly: true,
-			expires: new Date(Date.now() + 1000 * 86400), // 1 day
-			sameSite: "none",
-			secure: true,
-		});
-	}
+	
+	if(passwordIsCorrect){
+	 // Send HTTP-only cookie
+	res.cookie("token", token, {
+	  path: "/",
+	  httpOnly: true,
+	  expires: new Date(Date.now() + 1000 * 86400), // 1 day
+	  sameSite: "none",
+	  secure: true,
+	});
+  }
 	if (user && passwordIsCorrect) {
-		const { _id, name, email, photo, phone, bio } = user;
+	  const { _id, name, email, photo, phone, bio } = user;
+	  res.status(200).json({
+		_id,
+		name,
+		email,
+		photo,
+		phone,
+		bio,
+		token,
+	  });
+	} else {
+	  res.status(400);
+	  throw new Error("Invalid email or password");
+	}
+  });
+
+// Another method to Logout User
+const logoutUser = asyncHandler(async (req, res) => {
+	res.cookie("token", "", {
+		path: "/",
+		httpOnly: true,
+		expires: new Date(0), // 1 day
+		sameSite: "none",
+		secure: true,
+	});
+	return res.status(200).json({ message: "Successfully Logged out" });
+});
+
+// Logout User
+// const logoutUser = asyncHandler(async (req, res) => {
+// 	res.clearCookie("token");
+// 	res.status(200).json({
+// 		message: "Successfully Logged out",
+// 	});
+// });
+
+
+// Get User Data
+const getUser = asyncHandler(async (req, res) => {
+	const user = await User.findById(req.user._id);
+
+	if (user) {
+		res.status(200);
+		const { _id, name, password, email, photo, phone, bio, token} = user;
 		res.status(200).json({
 			_id,
 			name,
+			password,
 			email,
 			photo,
 			phone,
@@ -111,49 +156,9 @@ const loginUser = asyncHandler(async (req, res) => {
 		});
 	} else {
 		res.status(400);
-		throw new Error("Invalid email or password");
+		throw new Error("User Not Found");
 	}
 });
-
-// Another method to Logout User
-// const logoutUser = asyncHandler(async (req, res) => {
-// 	res.cookie("token", "", {
-// 		path: "/",
-// 		httpOnly: true,
-// 		expires: new Date(0), // 1 day
-// 		sameSite: "none",
-// 		secure: true,
-// 	});
-// 	return res.status(200).json({ message: "Successfully Logged out" });
-// });
-
-// Logout User
-const logoutUser = asyncHandler(async (req, res) => {
-	res.clearCookie("token");
-	res.status(200).json({
-		message: "Successfully Logged out",
-	});
-});
-
-
-// Get User profile
-const getUser = asyncHandler(asyncHandler(async (req, res) => {
-	
-	const user = await User.findById(req.params._id);
-	if (user) {
-		res.status(200).json({
-			_id: user._id,
-			name: user.name,
-			email: user.email,
-			photo: user.photo,
-			phone: user.phone,
-			bio: user.bio,
-		});
-	} else {
-		res.status(404);
-		throw new Error("User not found");
-	}
-}));
 
 module.exports = {
 	registerUser,
