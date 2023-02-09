@@ -136,14 +136,13 @@ const logoutUser = asyncHandler(async (req, res) => {
 // 	});
 // });
 
-
 // Get User Data
 const getUser = asyncHandler(async (req, res) => {
 	const user = await User.findById(req.user._id);
 
 	if (user) {
 		res.status(200);
-		const { _id, name, password, email, photo, phone, bio, token} = user;
+		const { _id, name, password, email, photo, phone, bio} = user;
 		res.status(200).json({
 			_id,
 			name,
@@ -152,7 +151,6 @@ const getUser = asyncHandler(async (req, res) => {
 			photo,
 			phone,
 			bio,
-			token,
 		});
 	} else {
 		res.status(400);
@@ -160,9 +158,40 @@ const getUser = asyncHandler(async (req, res) => {
 	}
 });
 
+// Get Login Status
+const loginStatus = asyncHandler(async (req, res) => {
+	const token = req.cookies.token;
+	if (!token) {
+		return res.json(false);
+	} 
+	 
+	// verify token
+    const verified = jwt.verify(token, process.env.JWT_SECRET);
+	if(verified){
+		return res.json(true);
+	} 
+	return res.json(false)
+});
+
+// Update User
+const updateUser = asyncHandler(async (req, res) => {
+	const user = await User.findById(req.user._id);
+
+	if (user) {
+		const { name, email, password, photo, phone, bio } = user;
+		user.email = email 
+	}
+		
+});
+
+
+
+
 module.exports = {
 	registerUser,
 	loginUser,
 	logoutUser,
-	getUser
+	getUser,
+	loginStatus,
+	updateUser
 };
