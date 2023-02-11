@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const Token = require("../models/tokenModel");
 const crypto = require("crypto");
+const sendEmail = require("../utils/sendEmail");
 
 const generateToken = (id) => {
 	return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "1d" });
@@ -243,6 +244,13 @@ const forgotPassword = asyncHandler(async (req, res) => {
 		throw new Error("User does not exist");
 	}
 
+	// Delete token if it exists in DB
+	let token = await Token.findOne({userId: user._id})
+	if (token) {
+		await token.deleteOne()
+	}
+
+
 	// Create reset token
 	let resetToken = crypto.randomBytes(32).toString("hex") + user._id;
 
@@ -269,9 +277,22 @@ const forgotPassword = asyncHandler(async (req, res) => {
 		
 		<p>If you did not request this email, please ignore it</p>
 		<p>Thank you</p>
-		<p>Pinvent Team</p>`
+		<p>Pinvent Team</p>`;
 
-	console.log(resetToken)
+		const subject = "Password Reset Request"
+		const send_to = user.email
+		const send_from = process.env.EMAIL_USER
+
+		try {
+			await sendEmail(subject, message, send_to, send_from)
+			res.status(200).json({
+				success: true,
+				message: "Password reset link sent to your email",
+			})
+		} catch (error) {
+			res.status(500)
+			throw new Error("Email not sent, please try again")
+		}
 	res.send("Forgot Password");
 });
 
