@@ -26,6 +26,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
 	// Check if user email already exists
 	const userExists = await User.findOne({ email });
+
 	if (userExists) {
 		res.status(400);
 		throw new Error("Email has already been registered");
@@ -51,7 +52,6 @@ const registerUser = asyncHandler(async (req, res) => {
 	});
 
 	if (user) {
-		const tokenize = req.signedCookies;
 		const { _id, name, email, photo, phone, bio } = user;
 		res.status(201).json({
 			_id,
@@ -119,25 +119,13 @@ const loginUser = asyncHandler(async (req, res) => {
 	}
 });
 
-// Another method to Logout User
-const logoutUser = asyncHandler(async (req, res) => {
-	res.cookie("token", "", {
-		path: "/",
-		httpOnly: true,
-		expires: new Date(0), // 1 day
-		sameSite: "none",
-		secure: true,
-	});
-	return res.status(200).json({ message: "Successfully Logged out" });
-});
-
 // Logout User
-// const logoutUser = asyncHandler(async (req, res) => {
-// 	res.clearCookie("token");
-// 	res.status(200).json({
-// 		message: "Successfully Logged out",
-// 	});
-// });
+const logoutUser = asyncHandler(async (req, res) => {
+	res.clearCookie("token");
+	res.status(200).json({
+		message: "Successfully Logged out",
+	});
+});
 
 // Get User Data
 const getUser = asyncHandler(async (req, res) => {
@@ -165,17 +153,20 @@ const getUser = asyncHandler(async (req, res) => {
 const loginStatus = asyncHandler(async (req, res) => {
 	const token = req.cookies.token;
 	if (!token) {
-		return res.json(false);
+	  return res.json(false);
 	}
-
-	// verify token
+	// Verify Token
 	const verified = jwt.verify(token, process.env.JWT_SECRET);
 	if (verified) {
-		return res.json(true);
+	  return res.json({
+		"Message": "User is logged in",
+	  });
 	}
-	return res.json(false)
-});
-
+	return res.json({
+	  "Message": "User is not logged in",
+	});
+  });
+  
 // Update User
 const updateUser = asyncHandler(async (req, res) => {
 	const user = await User.findById(req.user._id);
@@ -208,31 +199,32 @@ const updateUser = asyncHandler(async (req, res) => {
 // Change Password
 const changePassword = asyncHandler(async (req, res) => {
 	const user = await User.findById(req.user._id);
+	const { oldPassword, password } = req.body;
+
 	if (!user) {
 		res.status(400);
 		throw new Error("User not found, please signup");
 	}
-
-	const { oldPassword, newPassword } = req.body
-
-	// Validate Request
-	if (!oldPassword || !newPassword) {
+	//Validate
+	if (!oldPassword || !password) {
 		res.status(400);
-		throw new Error("Please add old password and new password");
+		throw new Error("Please add old and new password");
 	}
 
-	// User exists, check if password is correct
+	// check if old password matches password in DB
 	const passwordIsCorrect = await bcrypt.compare(oldPassword, user.password);
 
+	// Save new password
 	if (user && passwordIsCorrect) {
-		user.password = newPassword;
+		user.password = password;
 		await user.save();
-		res.status(200).json("Password changed successfully");
+		res.status(200).send("Password change successful");
 	} else {
 		res.status(400);
 		throw new Error("Old password is incorrect");
 	}
 });
+
 
 // Forgot Password
 const forgotPassword = asyncHandler(async (req, res) => {
@@ -245,7 +237,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
 	}
 
 	// Delete token if it exists in DB
-	let token = await Token.findOne({userId: user._id})
+	let token = await Token.findOne({ userId: user._id })
 	if (token) {
 		await token.deleteOne()
 	}
@@ -279,20 +271,20 @@ const forgotPassword = asyncHandler(async (req, res) => {
 		<p>Thank you</p>
 		<p>Pinvent Team</p>`;
 
-		const subject = "Password Reset Request"
-		const send_to = user.email
-		const send_from = process.env.EMAIL_USER
+	const subject = "Password Reset Request"
+	const send_to = user.email
+	const send_from = process.env.EMAIL_USER
 
-		try {
-			await sendEmail(subject, message, send_to, send_from)
-			res.status(200).json({
-				success: true,
-				message: "Password reset link sent to your email",
-			})
-		} catch (error) {
-			res.status(500)
-			throw new Error("Email not sent, please try again")
-		}
+	try {
+		await sendEmail(subject, message, send_to, send_from)
+		res.status(200).json({
+			success: true,
+			message: "Password reset link sent to your email",
+		})
+	} catch (error) {
+		res.status(500)
+		throw new Error("Email not sent, please try again")
+	}
 	res.send("Forgot Password");
 });
 
