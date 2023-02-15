@@ -153,20 +153,22 @@ const getUser = asyncHandler(async (req, res) => {
 const loginStatus = asyncHandler(async (req, res) => {
 	const token = req.cookies.token;
 	if (!token) {
-	  return res.json(false);
+		return res.json({
+			"Message": "User is not logged in",
+		});
 	}
 	// Verify Token
 	const verified = jwt.verify(token, process.env.JWT_SECRET);
 	if (verified) {
-	  return res.json({
-		"Message": "User is logged in",
-	  });
+		return res.json({
+			"Message": "User is logged in",
+		});
 	}
 	return res.json({
-	  "Message": "User is not logged in",
+		"Message": "User is not logged in",
 	});
-  });
-  
+});
+
 // Update User
 const updateUser = asyncHandler(async (req, res) => {
 	const user = await User.findById(req.user._id);
@@ -242,23 +244,24 @@ const forgotPassword = asyncHandler(async (req, res) => {
 		await token.deleteOne()
 	}
 
+	const newToken = jwt.sign({ email: user.email }, process.env.JWT_SECRET, { expiresIn: '1m' });
 
-	// Create reset token
-	let resetToken = crypto.randomBytes(32).toString("hex") + user._id;
+	// // Create reset token
+	// let resetToken = await crypto.randomBytes(32).toString("hex") + user._id;
 
-	// Hash token before saving to database
-	const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+	// // Hash token before saving to database
+	// const hashedToken = await crypto.createHash("sha256").update(resetToken).digest("hex");
 
-	// Save hashed token to database
-	await new Token({
-		userId: user._id,
-		token: hashedToken,
-		createdAt: Date.now(),
-		expiresAt: Date.now() + 30 * (60 * 1000), // thirty minutes
-	}).save();
+	// // Save hashed token to database
+	// await new Token({
+	// 	userId: user._id,
+	// 	token: hashedToken,
+	// 	createdAt: Date.now(),
+	// 	expiresAt: Date.now() + 1 * (60 * 1000), // one minute
+	// }).save();
 
 	// Construct Reset Url
-	const resetUrl = `${process.env.FRONTEND_URL}/resetpassword/${resetToken}`;
+	const resetUrl = `${process.env.FRONTEND_URL}/resetpassword/${newToken}`;
 
 	// Reset Email 
 	const message = `
@@ -290,8 +293,55 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
 // Reset Password
 const resetPassword = asyncHandler(async (req, res) => {
-	res.send("Reset-Password")
+
+	const { password } = req.body;
+	const { resetToken } = req.params;
+	try {
+		await jwt.verify(resetToken, process.env.JWT_SECRET, (err, decoded) => {
+			if (err) {
+				res.send(err)
+			}
+			// check if the token has expired
+			const now = Date.now() / 1000;
+			if (decoded.exp < now) {
+				res.send("Token has expired")
+			}
+			res.send("Token is valid")
+		});
+		// Find user
+		const user = await User.findOne({ _id: userToken.userId });
+		user.password = password;
+		await user.save();
+		res.status(200).json({
+			message: "Password Reset Successful, Please Login",
+		});
+		
+		console.log(decoded.email)
+	} catch (error) {
+		res.status(500)
+		throw new Error("Email not sent, please try again")
+	}
 });
+
+	
+  
+	// // Hash token, then compare to Token in DB
+	// const hashedToken = crypto
+	//   .createHash("sha256")
+	//   .update(resetToken)
+	//   .digest("hex");
+  
+	// // fIND tOKEN in DB
+	// const userToken = await Token.findOne({
+	//   token: hashedToken,
+	//   expiresAt: { $gt: Date.now() },
+	// });
+  
+	// if (!userToken) {
+	//   res.status(404);
+	//   throw new Error("Invalid or Expired Token");
+	// }
+  
 
 module.exports = {
 	registerUser,
