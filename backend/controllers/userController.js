@@ -153,19 +153,17 @@ const getUser = asyncHandler(async (req, res) => {
 const loginStatus = asyncHandler(async (req, res) => {
 	const token = req.cookies.token;
 	if (!token) {
-		return res.json({
-			"Message": "User is not logged in",
-		});
+	  return res.json(false);
 	}
 	// Verify Token
 	const verified = jwt.verify(token, process.env.JWT_SECRET);
 	if (verified) {
-		return res.json({
-			"Message": "User is logged in",
-		});
+	  return res.json({
+		"Message": "User is logged in",
+	  });
 	}
 	return res.json({
-		"Message": "User is not logged in",
+	  "Message": "User is not logged in",
 	});
 });
 
@@ -195,7 +193,6 @@ const updateUser = asyncHandler(async (req, res) => {
 		res.status(400);
 		throw new Error("User Not Found");
 	}
-
 });
 
 // Change Password
@@ -227,7 +224,6 @@ const changePassword = asyncHandler(async (req, res) => {
 	}
 });
 
-
 // Forgot Password
 const forgotPassword = asyncHandler(async (req, res) => {
 	const { email } = req.body;
@@ -239,18 +235,17 @@ const forgotPassword = asyncHandler(async (req, res) => {
 	}
 
 	// Delete token if it exists in DB
-	let token = await Token.findOne({ userId: user._id })
+	let token = await Token.findOne({ userId: user._id });
 	if (token) {
-		await token.deleteOne()
+		await token.deleteOne();
 	}
 
-	const newToken = jwt.sign({ email: user.email }, process.env.JWT_SECRET, { expiresIn: '1m' });
 
 	// // Create reset token
 	// let resetToken = await crypto.randomBytes(32).toString("hex") + user._id;
 
-	// // Hash token before saving to database
-	// const hashedToken = await crypto.createHash("sha256").update(resetToken).digest("hex");
+	// Hash token before saving to database
+	const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
 
 	// // Save hashed token to database
 	// await new Token({
@@ -263,7 +258,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
 	// Construct Reset Url
 	const resetUrl = `${process.env.FRONTEND_URL}/resetpassword/${newToken}`;
 
-	// Reset Email 
+	// Reset Email
 	const message = `
 		<h2>Hello ${user.name}</h2>
 		<p>Please use the url below to reset your password</p>
@@ -274,53 +269,26 @@ const forgotPassword = asyncHandler(async (req, res) => {
 		<p>Thank you</p>
 		<p>Pinvent Team</p>`;
 
-	const subject = "Password Reset Request"
-	const send_to = user.email
-	const send_from = process.env.EMAIL_USER
+	const subject = "Password Reset Request";
+	const send_to = user.email;
+	const send_from = process.env.EMAIL_USER;
 
 	try {
-		await sendEmail(subject, message, send_to, send_from)
+		await sendEmail(subject, message, send_to, send_from);
 		res.status(200).json({
 			success: true,
 			message: "Password reset link sent to your email",
-		})
+		});
 	} catch (error) {
-		res.status(500)
-		throw new Error("Email not sent, please try again")
+		res.status(500);
+		throw new Error("Email not sent, please try again");
 	}
 	res.send("Forgot Password");
 });
 
 // Reset Password
 const resetPassword = asyncHandler(async (req, res) => {
-
-	const { password } = req.body;
-	const { resetToken } = req.params;
-	try {
-		await jwt.verify(resetToken, process.env.JWT_SECRET, (err, decoded) => {
-			if (err) {
-				res.send(err)
-			}
-			// check if the token has expired
-			const now = Date.now() / 1000;
-			if (decoded.exp < now) {
-				res.send("Token has expired")
-			}
-			res.send("Token is valid")
-		});
-		// Find user
-		const user = await User.findOne({ _id: userToken.userId });
-		user.password = password;
-		await user.save();
-		res.status(200).json({
-			message: "Password Reset Successful, Please Login",
-		});
-		
-		console.log(decoded.email)
-	} catch (error) {
-		res.status(500)
-		throw new Error("Email not sent, please try again")
-	}
+	res.send("Reset-Password")
 });
 
 	
@@ -352,5 +320,5 @@ module.exports = {
 	updateUser,
 	changePassword,
 	forgotPassword,
-	resetPassword
+	resetPassword,
 };
