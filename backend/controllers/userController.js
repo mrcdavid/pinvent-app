@@ -7,6 +7,7 @@ const sendEmail = require("../utils/sendEmail");
 const jose = require("jose");
 const fs = require('fs');
 const { PUBLIC_KEY, PRIVATE_KEY } = require('../helper/helper');
+const jwt = require("jsonwebtoken");
 
 
 const generateToken = (id) => {
@@ -252,19 +253,28 @@ const forgotPassword = asyncHandler(async (req, res) => {
 		});
 
 	}
-
-	// const PRIVATE_KEY = fs.readFileSync(process.env.PRIVATE_KEY, 'utf8');
 	// Generate Token
-	const newToken = jose.SignJWT({ email: user.email }, PRIVATE_KEY, { expiresIn: '1d', algorithm: 'RS256' });
-	if (newToken) {
-		res.send(newToken);
-	} else {
-		res.status(400);
-		throw new Error("Invalid Token");
-	}
+	// const newToken = jose.SignJWT({ email: user.email }, PRIVATE_KEY, { expiresIn: '1d', algorithm: 'RS256' });
+	// if (newToken) {
+	// 	res.send(newToken);
+	// } else {
+	// 	res.status(400);
+	// 	throw new Error("Invalid Token");
+	// }
+
+	const alg = 'RS256'
+	const privateKey = await jose.importPKCS8(PRIVATE_KEY, alg)
+
+	const jwt = await new jose.SignJWT({ 'urn:example:claim': true })
+	  .setProtectedHeader({ alg })
+	  .setIssuedAt()
+	  .setIssuer('urn:example:issuer')
+	  .setAudience('urn:example:audience')
+	  .setExpirationTime('2h')
+	  .sign(privateKey)
 
 	// Construct Reset Url
-	const resetUrl = `${process.env.FRONTEND_URL}/resetpassword/${newToken}`;
+	const resetUrl = `${process.env.FRONTEND_URL}/resetpassword/${jwt}`;
 
 	// Reset Email
 	const message = `
