@@ -1,13 +1,16 @@
 const asyncHandler = require("express-async-handler");
 const User = require("../models/userModel");
-const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const Token = require("../models/tokenModel");
 const crypto = require("crypto");
 const sendEmail = require("../utils/sendEmail");
+const jose = require("jose");
+const fs = require('fs');
+const { PUBLIC_KEY, PRIVATE_KEY } = require('../helper/helper');
+
 
 const generateToken = (id) => {
-	return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "1d" });
+	return jose.SignJWT({ id }, PRIVATE_KEY, { expiresIn: "1d" });
 };
 
 // Register User
@@ -153,17 +156,19 @@ const getUser = asyncHandler(async (req, res) => {
 const loginStatus = asyncHandler(async (req, res) => {
 	const token = req.cookies.token;
 	if (!token) {
-	  return res.json(false);
+		return res.json({
+			"Message": "User is not logged in",
+		});
 	}
 	// Verify Token
-	const verified = jwt.verify(token, process.env.JWT_SECRET);
+	const verified = jose.jwtVerify(token, PUBLIC_KEY);
 	if (verified) {
-	  return res.json({
-		"Message": "User is logged in",
-	  });
+		return res.json({
+			"Message": "User is logged in",
+		});
 	}
 	return res.json({
-	  "Message": "User is not logged in",
+		"Message": "User is not logged in",
 	});
 });
 
@@ -217,11 +222,13 @@ const changePassword = asyncHandler(async (req, res) => {
 	if (user && passwordIsCorrect) {
 		user.password = password;
 		await user.save();
-		res.status(200).send("Password change successful");
+		logoutUser(req, res);
+		return res.status(200).send("Password change successful");
 	} else {
 		res.status(400);
 		throw new Error("Old password is incorrect");
 	}
+
 });
 
 // Forgot Password
@@ -229,45 +236,46 @@ const forgotPassword = asyncHandler(async (req, res) => {
 	const { email } = req.body;
 	const user = await User.findOne({ email });
 
+
 	if (!user) {
-		res.status(404);
-		throw new Error("User does not exist");
+		// If user doesn't exist, return an error
+		return res.status(400).json({
+			error: 'User not found.'
+		});
 	}
 
-	// Delete token if it exists in DB
-	let token = await Token.findOne({ userId: user._id });
-	if (token) {
-		await token.deleteOne();
+	// Check if the email provided matches the email associated with the user's account
+	if (user.email !== email) {
+		// If the email doesn't match, return an error
+		return res.status(400).json({
+			error: 'Email does not match.'
+		});
+
 	}
 
-
-	// // Create reset token
-	// let resetToken = await crypto.randomBytes(32).toString("hex") + user._id;
-
-	// Hash token before saving to database
-	const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
-
-	// // Save hashed token to database
-	// await new Token({
-	// 	userId: user._id,
-	// 	token: hashedToken,
-	// 	createdAt: Date.now(),
-	// 	expiresAt: Date.now() + 1 * (60 * 1000), // one minute
-	// }).save();
+	// const PRIVATE_KEY = fs.readFileSync(process.env.PRIVATE_KEY, 'utf8');
+	// Generate Token
+	const newToken = jose.SignJWT({ email: user.email }, PRIVATE_KEY, { expiresIn: '1d', algorithm: 'RS256' });
+	if (newToken) {
+		res.send(newToken);
+	} else {
+		res.status(400);
+		throw new Error("Invalid Token");
+	}
 
 	// Construct Reset Url
 	const resetUrl = `${process.env.FRONTEND_URL}/resetpassword/${newToken}`;
 
 	// Reset Email
 	const message = `
-		<h2>Hello ${user.name}</h2>
-		<p>Please use the url below to reset your password</p>
-		<p>This reset link is valid for only 30 minutes</p>
-		<a href="${resetUrl} clickedtracking=off">${resetUrl}</a>
+			<h2>Hello ${user.name}</h2>
+			<p>Please use the url below to reset your password</p>
+			<p>This reset link is valid for only 30 minutes</p>
+			<a href="${resetUrl} clickedtracking=off">${resetUrl}</a>
 		
-		<p>If you did not request this email, please ignore it</p>
-		<p>Thank you</p>
-		<p>Pinvent Team</p>`;
+			<p>If you did not request this email, please ignore it</p>
+			<p>Thank you</p>
+			<p>Pinvent Team</p>`;
 
 	const subject = "Password Reset Request";
 	const send_to = user.email;
@@ -286,30 +294,20 @@ const forgotPassword = asyncHandler(async (req, res) => {
 	res.send("Forgot Password");
 });
 
+
 // Reset Password
 const resetPassword = asyncHandler(async (req, res) => {
-	res.send("Reset-Password")
+	const { password } = req.body;
+	const { newToken } = req.params;
+	try {
+		const decodedToken = await jose.jwtVerify(newToken, PUBLIC_KEY, { algorithms: ['RS256'] });
+		res.send(decodedToken);
+	} catch (err) {
+		console.error(err);
+		res.status(401).send('Invalid or expired token');
+	}
 });
 
-	
-  
-	// // Hash token, then compare to Token in DB
-	// const hashedToken = crypto
-	//   .createHash("sha256")
-	//   .update(resetToken)
-	//   .digest("hex");
-  
-	// // fIND tOKEN in DB
-	// const userToken = await Token.findOne({
-	//   token: hashedToken,
-	//   expiresAt: { $gt: Date.now() },
-	// });
-  
-	// if (!userToken) {
-	//   res.status(404);
-	//   throw new Error("Invalid or Expired Token");
-	// }
-  
 
 module.exports = {
 	registerUser,
@@ -320,5 +318,5 @@ module.exports = {
 	updateUser,
 	changePassword,
 	forgotPassword,
-	resetPassword,
+	resetPassword
 };

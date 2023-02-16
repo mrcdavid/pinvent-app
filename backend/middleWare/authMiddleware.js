@@ -11,7 +11,7 @@ const protect = asyncHandler(async (req, res, next) => {
     }
 
     // Verify Token
-    const verified = jwt.verify(token, process.env.JWT_SECRET);
+    const verified = jwt.verify(token, process.env.PUBLIC_KEY);
     // Get user id from token
     const user = await User.findById(verified.id);
 
@@ -26,5 +26,7 @@ const protect = asyncHandler(async (req, res, next) => {
     throw new Error("3Not authorized, please login");
   }
 });
+
+
 
 module.exports = protect;
