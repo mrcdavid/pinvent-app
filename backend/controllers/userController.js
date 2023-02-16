@@ -153,17 +153,17 @@ const getUser = asyncHandler(async (req, res) => {
 const loginStatus = asyncHandler(async (req, res) => {
 	const token = req.cookies.token;
 	if (!token) {
-	  return res.json(false);
+		return res.json(false);
 	}
 	// Verify Token
 	const verified = jwt.verify(token, process.env.JWT_SECRET);
 	if (verified) {
-	  return res.json({
-		"Message": "User is logged in",
-	  });
+		return res.json({
+			Message: "User is logged in",
+		});
 	}
 	return res.json({
-	  "Message": "User is not logged in",
+		Message: "User is not logged in",
 	});
 });
 
@@ -240,20 +240,11 @@ const forgotPassword = asyncHandler(async (req, res) => {
 		await token.deleteOne();
 	}
 
-
-	// // Create reset token
-	// let resetToken = await crypto.randomBytes(32).toString("hex") + user._id;
-
 	// Hash token before saving to database
-	const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
-
-	// // Save hashed token to database
-	// await new Token({
-	// 	userId: user._id,
-	// 	token: hashedToken,
-	// 	createdAt: Date.now(),
-	// 	expiresAt: Date.now() + 1 * (60 * 1000), // one minute
-	// }).save();
+	const hashedToken = crypto
+		.createHash("sha256")
+		.update(resetToken)
+		.digest("hex");
 
 	// Construct Reset Url
 	const resetUrl = `${process.env.FRONTEND_URL}/resetpassword/${newToken}`;
@@ -288,28 +279,8 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
 // Reset Password
 const resetPassword = asyncHandler(async (req, res) => {
-	res.send("Reset-Password")
+	res.send("Reset-Password");
 });
-
-	
-  
-	// // Hash token, then compare to Token in DB
-	// const hashedToken = crypto
-	//   .createHash("sha256")
-	//   .update(resetToken)
-	//   .digest("hex");
-  
-	// // fIND tOKEN in DB
-	// const userToken = await Token.findOne({
-	//   token: hashedToken,
-	//   expiresAt: { $gt: Date.now() },
-	// });
-  
-	// if (!userToken) {
-	//   res.status(404);
-	//   throw new Error("Invalid or Expired Token");
-	// }
-  
 
 module.exports = {
 	registerUser,
