@@ -22,7 +22,7 @@ router.get("/loggedin", loginStatus)
 router.patch("/updateuser", protect, updateUser)
 router.patch("/changepassword", protect, changePassword)
 router.post("/forgotpassword", forgotPassword)
-router.put("/resetpassword/:resetToken", resetPassword)
+router.put("/resetpassword/:newToken", resetPassword)
 
 
 
