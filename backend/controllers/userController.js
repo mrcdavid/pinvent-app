@@ -153,17 +153,20 @@ const getUser = asyncHandler(async (req, res) => {
 const loginStatus = asyncHandler(async (req, res) => {
 	const token = req.cookies.token;
 	if (!token) {
-	  return res.json(false);
+		return res.json({
+			"Message": "User is not logged in",
+		});
 	}
 	// Verify Token
-	const verified = jwt.verify(token, process.env.JWT_SECRET);
+	const verified = jose.JWT.verify(token, PUBLIC_KEY);
 	if (verified) {
-	  return res.json({
-		"Message": "User is logged in",
-	  });
+		console.log(verified);
+		return res.json({
+			"Message": "User is logged in",
+		});
 	}
 	return res.json({
-	  "Message": "User is not logged in",
+		"Message": "User is not logged in",
 	});
 });
 
