@@ -189,15 +189,17 @@ const loginStatus = asyncHandler(async (req, res) => {
 		});
 	}
 	// Verify Token
-	const verified = jose.JWT.verify(token, PUBLIC_KEY);
-	if (verified) {
+	jose.jwtVerify(token, await jose.importSPKI(PUBLIC_KEY, "RS256"))
+	.then((verified) => {
 		console.log(verified);
 		return res.json({
 			"Message": "User is logged in",
 		});
-	}
-	return res.json({
-		"Message": "User is not logged in",
+	}).catch((err) => {
+		console.log(err);
+		return res.json({
+			"Message": "User is not logged in",
+		});
 	});
 });
 
