@@ -11,8 +11,20 @@ const jwt = require("jsonwebtoken");
 
 
 const generateToken = (id) => {
-	return jose.SignJWT({ id }, PRIVATE_KEY, { expiresIn: "1d" });
+	payload = { 
+		id: id,
+		exp: Math.floor(Date.now() / 1000) + (60 * 60)
+	 };
+	return jwt.sign(payload, PRIVATE_KEY, { algorithm: 'RS256'});
 };
+
+// const generateToken = (id) => {
+// 	return new jose.SignJWT({ id }, PRIVATE_KEY, { expiresIn: "1d" });
+// };
+
+// const generateToken = (id) => {
+// 	return new jose.SignJWT({ id }, PRIVATE_KEY, { expiresIn: "1d" });
+// };
 
 // Register User
 const registerUser = asyncHandler(async (req, res) => {
@@ -107,7 +119,7 @@ const loginUser = asyncHandler(async (req, res) => {
 		});
 	}
 	if (user && passwordIsCorrect) {
-		const { _id, name, email, photo, phone, bio } = user;
+		const { _id, name, email, photo, phone, bio, token} = user;
 		res.status(200).json({
 			_id,
 			name,
@@ -133,10 +145,29 @@ const logoutUser = asyncHandler(async (req, res) => {
 
 // Get User Data
 const getUser = asyncHandler(async (req, res) => {
-	const user = await User.findById(req.user._id);
+	const user = await User.findById(req.user.payload.id);
 
-	if (user) {
-		res.status(200);
+	// if (user) {
+	// 	res.status(200);
+	// 	const { _id, name, password, email, photo, phone, bio } = user;
+	// 	res.status(200).json({
+	// 		_id,
+	// 		name,
+	// 		password,
+	// 		email,
+	// 		photo,
+	// 		phone,
+	// 		bio,
+	// 	});
+	// } else {
+	// 	res.status(400);
+	// 	throw new Error("User Not Found");
+	// }
+	if (!user) {
+		res.status(400);
+		throw new Error("User Not Found");
+	}
+	res.status(200);
 		const { _id, name, password, email, photo, phone, bio } = user;
 		res.status(200).json({
 			_id,
@@ -147,10 +178,6 @@ const getUser = asyncHandler(async (req, res) => {
 			phone,
 			bio,
 		});
-	} else {
-		res.status(400);
-		throw new Error("User Not Found");
-	}
 });
 
 // Get Login Status
@@ -162,8 +189,9 @@ const loginStatus = asyncHandler(async (req, res) => {
 		});
 	}
 	// Verify Token
-	const verified = jose.jwtVerify(token, PUBLIC_KEY);
+	const verified = jose.JWT.verify(token, PUBLIC_KEY);
 	if (verified) {
+		console.log(verified);
 		return res.json({
 			"Message": "User is logged in",
 		});
@@ -266,12 +294,12 @@ const forgotPassword = asyncHandler(async (req, res) => {
 	const privateKey = await jose.importPKCS8(PRIVATE_KEY, alg)
 
 	const jwt = await new jose.SignJWT({ 'urn:example:claim': true })
-	  .setProtectedHeader({ alg })
-	  .setIssuedAt()
-	  .setIssuer('urn:example:issuer')
-	  .setAudience('urn:example:audience')
-	  .setExpirationTime('2h')
-	  .sign(privateKey)
+		.setProtectedHeader({ alg })
+		.setIssuedAt()
+		.setIssuer('urn:example:issuer')
+		.setAudience('urn:example:audience')
+		.setExpirationTime('2h')
+		.sign(privateKey)
 
 	// Construct Reset Url
 	const resetUrl = `${process.env.FRONTEND_URL}/resetpassword/${jwt}`;
