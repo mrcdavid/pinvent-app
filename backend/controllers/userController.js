@@ -5,17 +5,16 @@ const Token = require("../models/tokenModel");
 const crypto = require("crypto");
 const sendEmail = require("../utils/sendEmail");
 const jose = require("jose");
-const fs = require('fs');
-const { PUBLIC_KEY, PRIVATE_KEY } = require('../helper/helper');
+const fs = require("fs");
+const { PUBLIC_KEY, PRIVATE_KEY } = require("../helper/helper");
 const jwt = require("jsonwebtoken");
 
-
 const generateToken = (id) => {
-	payload = { 
+	payload = {
 		id: id,
-		exp: Math.floor(Date.now() / 1000) + (60 * 60)
-	 };
-	return jwt.sign(payload, PRIVATE_KEY, { algorithm: 'RS256'});
+		exp: Math.floor(Date.now() / 1000) + 60 * 60,
+	};
+	return jwt.sign(payload, PRIVATE_KEY, { algorithm: "RS256" });
 };
 
 // const generateToken = (id) => {
@@ -119,7 +118,7 @@ const loginUser = asyncHandler(async (req, res) => {
 		});
 	}
 	if (user && passwordIsCorrect) {
-		const { _id, name, email, photo, phone, bio, token} = user;
+		const { _id, name, email, photo, phone, bio, token } = user;
 		res.status(200).json({
 			_id,
 			name,
@@ -163,21 +162,22 @@ const getUser = asyncHandler(async (req, res) => {
 	// 	res.status(400);
 	// 	throw new Error("User Not Found");
 	// }
+
 	if (!user) {
 		res.status(400);
 		throw new Error("User Not Found");
 	}
 	res.status(200);
-		const { _id, name, password, email, photo, phone, bio } = user;
-		res.status(200).json({
-			_id,
-			name,
-			password,
-			email,
-			photo,
-			phone,
-			bio,
-		});
+	const { _id, name, password, email, photo, phone, bio } = user;
+	res.status(200).json({
+		_id,
+		name,
+		password,
+		email,
+		photo,
+		phone,
+		bio,
+	});
 });
 
 // Get Login Status
@@ -185,27 +185,29 @@ const loginStatus = asyncHandler(async (req, res) => {
 	const token = req.cookies.token;
 	if (!token) {
 		return res.json({
-			"Message": "User is not logged in",
+			Message: "User is not logged in",
 		});
 	}
 	// Verify Token
-	jose.jwtVerify(token, await jose.importSPKI(PUBLIC_KEY, "RS256"))
-	.then((verified) => {
-		console.log(verified);
-		return res.json({
-			"Message": "User is logged in",
+	jose
+		.jwtVerify(token, await jose.importSPKI(PUBLIC_KEY, "RS256"))
+		.then((verified) => {
+			console.log(verified);
+			return res.json({
+				Message: "User is logged in",
+			});
+		})
+		.catch((err) => {
+			console.log(err);
+			return res.json({
+				Message: "User is not logged in",
+			});
 		});
-	}).catch((err) => {
-		console.log(err);
-		return res.json({
-			"Message": "User is not logged in",
-		});
-	});
 });
 
 // Update User
 const updateUser = asyncHandler(async (req, res) => {
-	const user = await User.findById(req.user._id);
+	const user = await User.findById(req.user.payload.id);
 
 	if (user) {
 		const { name, email, photo, phone, bio } = user;
@@ -233,7 +235,7 @@ const updateUser = asyncHandler(async (req, res) => {
 
 // Change Password
 const changePassword = asyncHandler(async (req, res) => {
-	const user = await User.findById(req.user._id);
+	const user = await User.findById(req.user.payload.id);
 	const { oldPassword, password } = req.body;
 
 	if (!user) {
@@ -259,7 +261,6 @@ const changePassword = asyncHandler(async (req, res) => {
 		res.status(400);
 		throw new Error("Old password is incorrect");
 	}
-
 });
 
 // Forgot Password
@@ -267,11 +268,10 @@ const forgotPassword = asyncHandler(async (req, res) => {
 	const { email } = req.body;
 	const user = await User.findOne({ email });
 
-
 	if (!user) {
 		// If user doesn't exist, return an error
 		return res.status(400).json({
-			error: 'User not found.'
+			error: "User not found.",
 		});
 	}
 
@@ -279,36 +279,32 @@ const forgotPassword = asyncHandler(async (req, res) => {
 	if (user.email !== email) {
 		// If the email doesn't match, return an error
 		return res.status(400).json({
-			error: 'Email does not match.'
+			error: "Email does not match.",
 		});
-
 	}
+
+	// const generateToken = (email) => {
+	// 	payload = {
+	// 		email: email,
+	// 		exp: Math.floor(Date.now() / 1000) + 60 * 60,
+	// 	};
+	// 	return jwt.sign(payload, PRIVATE_KEY, { algorithm: "RS256" });
+	// };
+
 	// Generate Token
-	// const newToken = jose.SignJWT({ email: user.email }, PRIVATE_KEY, { expiresIn: '1d', algorithm: 'RS256' });
-	// if (newToken) {
-	// 	res.send(newToken);
-	// } else {
-	// 	res.status(400);
-	// 	throw new Error("Invalid Token");
-	// }
-
-
-	// // Create reset token
-	// let resetToken = await crypto.randomBytes(32).toString("hex") + user._id;
-
-	// Hash token before saving to database
-	const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
-
-	// // Save hashed token to database
-	// await new Token({
-	// 	userId: user._id,
-	// 	token: hashedToken,
-	// 	createdAt: Date.now(),
-	// 	expiresAt: Date.now() + 1 * (60 * 1000), // one minute
-	// }).save();
+	const newToken = jwt.sign({ email: user.email, _id: user._id }, PRIVATE_KEY, {
+		expiresIn: "1d",
+		algorithm: "RS256",
+	});
+	if (newToken) {
+		res.send(newToken);
+	} else {
+		res.status(400);
+		throw new Error("Invalid Token");
+	}
 
 	// Construct Reset Url
-	const resetUrl = `${process.env.FRONTEND_URL}/resetpassword/${jwt}`;
+	const resetUrl = `${process.env.FRONTEND_URL}/resetpassword/${newToken}`;
 
 	// Reset Email
 	const message = `
@@ -338,31 +334,29 @@ const forgotPassword = asyncHandler(async (req, res) => {
 	res.send("Forgot Password");
 });
 
-
 // Reset Password
 const resetPassword = asyncHandler(async (req, res) => {
-	res.send("Reset-Password")
-});
+	const { resetToken } = req.params;
+	const payload = await User.findOne({
+		token: resetToken,
+	});
+	if (!payload) {
+		res.status(404);
+		throw new Error("Invalid or Expired Token");
+	}
+	res.status(200).json({
+		message: "Token is valid",
+	});
 
-	
-  
-	// // Hash token, then compare to Token in DB
-	// const hashedToken = crypto
-	//   .createHash("sha256")
-	//   .update(resetToken)
-	//   .digest("hex");
-  
-	// // fIND tOKEN in DB
-	// const userToken = await Token.findOne({
-	//   token: hashedToken,
-	//   expiresAt: { $gt: Date.now() },
-	// });
-  
-	// if (!userToken) {
-	//   res.status(404);
-	//   throw new Error("Invalid or Expired Token");
-	// }
-  
+	const id = payload._id
+	const target = await User.findOne({id})
+	const targetID = target._id
+	if (!targetID) {
+	res.status(404);
+	throw new Error("Invalid or Expired Token");
+	}
+	console.log(targetID)
+});
 
 module.exports = {
 	registerUser,
@@ -373,5 +367,5 @@ module.exports = {
 	updateUser,
 	changePassword,
 	forgotPassword,
-	resetPassword
+	resetPassword,
 };
