@@ -54,17 +54,17 @@ const registerUser = asyncHandler(async (req, res) => {
 		password,
 	});
 
-	// Generate token
-	const token = generateToken(user._id);
+	// // Generate token
+	// const token = generateToken(user._id);
 
-	// Send HTTP-only cookie
-	res.cookie("token", token, {
-		path: "/",
-		httpOnly: true,
-		expires: new Date(Date.now() + 1000 * 86400), // 1 day
-		sameSite: "none",
-		secure: true,
-	});
+	// // Send HTTP-only cookie
+	// res.cookie("token", token, {
+	// 	path: "/",
+	// 	httpOnly: true,
+	// 	expires: new Date(Date.now() + 1000 * 86400), // 1 day
+	// 	sameSite: "none",
+	// 	secure: true,
+	// });
 
 	if (user) {
 		const { _id, name, email, photo, phone, bio } = user;
@@ -75,7 +75,6 @@ const registerUser = asyncHandler(async (req, res) => {
 			photo,
 			phone,
 			bio,
-			token,
 		});
 	} else {
 		res.status(400);
@@ -182,30 +181,37 @@ const getUser = asyncHandler(async (req, res) => {
 
 // Get Login Status
 const loginStatus = asyncHandler(async (req, res) => {
-	const token = req.cookies.token;
-	if (!token) {
+	try {
+		const token = req.cookies.token;
+		if (!token) {
+			return res.json({
+				Message: "User is not logged in",
+			});
+		}
+		// Verify Token
+		jose
+			.jwtVerify(token, await jose.importSPKI(PUBLIC_KEY, "RS256"))
+			.then((verified) => {
+				console.log(verified);
+				return res.json({
+					Message: "User is logged in",
+				});
+			});
+	} catch {
 		return res.json({
 			Message: "User is not logged in",
 		});
 	}
-	// Verify Token
-	jose
-		.jwtVerify(token, await jose.importSPKI(PUBLIC_KEY, "RS256"))
-		.then((verified) => {
-			console.log(verified);
-			return res.json({
-				Message: "User is logged in",
-			});
-		})
-		.catch((err) => {
-			console.log(err);
-			return res.json({
-				Message: "User is not logged in",
-			});
-		});
 });
 
+// } catch ((err) => {
+// 	console.log(err);
+// 	return res.json({
+// 		Message: "User is not logged in",
+// 	};
+// })
 // Update User
+
 const updateUser = asyncHandler(async (req, res) => {
 	const user = await User.findById(req.user.payload.id);
 
@@ -348,14 +354,14 @@ const resetPassword = asyncHandler(async (req, res) => {
 		message: "Token is valid",
 	});
 
-	const id = payload._id
-	const target = await User.findOne({id})
-	const targetID = target._id
+	const id = payload._id;
+	const target = await User.findOne({ id });
+	const targetID = target._id;
 	if (!targetID) {
-	res.status(404);
-	throw new Error("Invalid or Expired Token");
+		res.status(404);
+		throw new Error("Invalid or Expired Token");
 	}
-	console.log(targetID)
+	console.log(targetID);
 });
 
 module.exports = {
