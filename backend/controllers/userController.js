@@ -350,7 +350,7 @@ const resetPassword = asyncHandler(async (req, res) => {
 
 	const userData = payload;
 	const target = await User.findOne({ _id: userData._id }).select({
-		"-password": 0,
+		"password": 0,
 		"bio":	0
 	});
 	// const targetID = target;
