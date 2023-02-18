@@ -20,12 +20,14 @@ const decryptToken = async (token) => {
 const protect = asyncHandler(async (req, res, next) => {
 	const token = req.cookies.token;
 	console.log(token);
-	if (!token) {
-		res.status(401);
-		throw new Error("Not authorized, no token");
-	}
-
-	decryptToken(token)
+	try {
+		
+		if (!token) {
+			res.status(401);
+			throw new Error("Not authorized, no token");
+		}
+		
+		await decryptToken(token)
 		.then((payload) => {
 			req.user = payload;
 			console.log(req.user.payload);
@@ -34,6 +36,11 @@ const protect = asyncHandler(async (req, res, next) => {
 		.catch((error) => {
 			console.error(error);
 		});
+	} catch (error) {
+		console.error(error);
+		res.status(401);
+		throw new Error("Not authorized, no token");
+	}
 });
 
 module.exports = protect;
