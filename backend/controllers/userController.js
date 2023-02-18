@@ -296,7 +296,8 @@ const forgotPassword = asyncHandler(async (req, res) => {
 		algorithm: "RS256",
 	});
 	if (newToken) {
-		res.send(newToken);
+		res.send("email has been sent");
+		console.log(newToken)
 	} else {
 		res.status(400);
 		throw new Error("Invalid Token");
@@ -347,14 +348,17 @@ const resetPassword = asyncHandler(async (req, res) => {
 		message: "Token is valid",
 	});
 
-	const id = payload._id;
-	const target = await User.findOne({ id });
-	const targetID = target._id;
-	if (!targetID) {
+	const userData = payload;
+	const target = await User.findOne({ _id: userData._id }).select({
+		"-password": 0,
+		"bio":	0
+	});
+	// const targetID = target;
+	if (!target) {
 		res.status(404);
 		throw new Error("Invalid or Expired Token");
 	}
-	console.log(targetID);
+	console.log(target);
 });
 
 module.exports = {
