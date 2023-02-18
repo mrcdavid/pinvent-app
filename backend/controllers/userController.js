@@ -210,6 +210,7 @@ const loginStatus = asyncHandler(async (req, res) => {
 // 		Message: "User is not logged in",
 // 	};
 // })
+
 // Update User
 
 const updateUser = asyncHandler(async (req, res) => {
@@ -288,14 +289,6 @@ const forgotPassword = asyncHandler(async (req, res) => {
 			error: "Email does not match.",
 		});
 	}
-
-	// const generateToken = (email) => {
-	// 	payload = {
-	// 		email: email,
-	// 		exp: Math.floor(Date.now() / 1000) + 60 * 60,
-	// 	};
-	// 	return jwt.sign(payload, PRIVATE_KEY, { algorithm: "RS256" });
-	// };
 
 	// Generate Token
 	const newToken = jwt.sign({ email: user.email, _id: user._id }, PRIVATE_KEY, {
