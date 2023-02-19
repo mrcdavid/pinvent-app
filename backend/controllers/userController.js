@@ -337,6 +337,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
 // Reset Password
 const resetPassword = asyncHandler(async (req, res) => {
 	const { resetToken } = req.params;
+	console.log(resetToken)
 	const payload = await User.findOne({
 		token: resetToken,
 	});
@@ -349,6 +350,7 @@ const resetPassword = asyncHandler(async (req, res) => {
 	});
 
 	const userData = payload;
+	console.log(userData)
 	const target = await User.findOne({ _id: userData._id }).select({
 		"password": 0,
 		"bio":	0
