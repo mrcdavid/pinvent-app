@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const jose = require("jose");
 const { PUBLIC_KEY, PRIVATE_KEY } = require("../helper/helper");
 
-const decryptToken = async (token) => {
+ const decryptToken = async (token) => {
 	try {
 		// const { payload } = await jose.jwtDecrypt(token, publicKey, {
 		//   algorithms: ['RS256'],
@@ -43,4 +43,4 @@ const protect = asyncHandler(async (req, res, next) => {
 	}
 });
 
-module.exports = protect;
+module.exports = { protect, decryptToken };
