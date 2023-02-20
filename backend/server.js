@@ -30,7 +30,7 @@ app.get("/", (req, res) => {
 app.use(errorHandler);
 
 mongoose.set('strictQuery', true);
-const PORT = process.env.PORT || 5000;
+const PORT = 5000;
 // Connect to DB and start server
 mongoose
   .connect(process.env.MONGO_URI)
