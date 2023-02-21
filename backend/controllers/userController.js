@@ -336,32 +336,62 @@ const forgotPassword = asyncHandler(async (req, res) => {
 // Reset Password
 const resetPassword = asyncHandler(async (req, res) => {
 	const { resetToken } = req.params;
-	await decryptToken(resetToken).then((payload) => {
-		return req.user = payload;
-	})
-	// console.log(resetToken)
-	const payload = await User.findOne({ _id: req.user.payload._id});
+	const { newPassword } = req.body;
+	const { confirmNewPassword } = req.body;
+
+	// check if newPassword and confirmnewPassword are provided
+	if (!newPassword)
+		res.status(400).json({
+			error: "Please provide your new password",
+		});
+
+	// check if confirmNewPassword is provided
+	if (!confirmNewPassword)
+		res.status(400).json({
+			error: "Please confirm your new password",
+		});
+
+	// Check if new password is at least 6 characters
+	if (newPassword.length < 6) {
+		res.status(400);
+		throw new Error("Password must be at least 6 characters");
+	}
+
+	// Check if new password and confirm new password match
+	if (newPassword !== confirmNewPassword) {
+		res.status(400);
+		throw new Error("Passwords do not match");
+	}
+
+	// Check if there is a token
+	if (!resetToken) {
+		res.status(400);
+		throw new Error("no Token");
+	}
+	// decode token
+	console.log(resetToken)
+	const promise = await decryptToken(resetToken);
+	console.log(promise);
+
+	// find user by id in token payload and check if token is valid and not expired and if user exists in db
+	const payload = await User.findOne({ _id: promise.payload._id })
+	// .select({
+	// 		"password": 0
+	// 	});
 	console.log(payload);
+
+	// Check if payload exists
 	if (!payload) {
 		res.status(404);
 		throw new Error("Invalid or Expired Token");
 	}
-	res.status(200).json({
-		message: "Token is valid",
-	});
 
-	// const userData = payload;
-	// console.log(userData)
-	// const target = await User.findOne({ _id: userData._id }).select({
-	// 	"password": 0,
-	// 	"bio":	0
-	// });
-	// // const targetID = target;
-	// if (!target) {
-	// 	res.status(404);
-	// 	throw new Error("Invalid or Expired Token");
-	// }
-	// console.log(target);
+	// Save new password
+	payload.password = newPassword;
+	await payload.save();
+	return res.status(200).send("Password reset successful");
+
+
 });
 
 module.exports = {
