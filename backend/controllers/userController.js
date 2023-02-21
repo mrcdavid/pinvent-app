@@ -8,6 +8,7 @@ const jose = require("jose");
 const fs = require("fs");
 const { PUBLIC_KEY, PRIVATE_KEY } = require("../helper/helper");
 const jwt = require("jsonwebtoken");
+const { decryptToken } = require("../middleware/authMiddleware");
 
 const generateToken = (id) => {
 	payload = {
@@ -274,14 +275,12 @@ const changePassword = asyncHandler(async (req, res) => {
 const forgotPassword = asyncHandler(async (req, res) => {
 	const { email } = req.body;
 	const user = await User.findOne({ email });
-
 	if (!user) {
 		// If user doesn't exist, return an error
 		return res.status(400).json({
 			error: "User not found.",
 		});
 	}
-
 	// Check if the email provided matches the email associated with the user's account
 	if (user.email !== email) {
 		// If the email doesn't match, return an error
@@ -337,10 +336,12 @@ const forgotPassword = asyncHandler(async (req, res) => {
 // Reset Password
 const resetPassword = asyncHandler(async (req, res) => {
 	const { resetToken } = req.params;
-	console.log(resetToken)
-	const payload = await User.findOne({
-		token: resetToken,
-	});
+	await decryptToken(resetToken).then((payload) => {
+		return req.user = payload;
+	})
+	// console.log(resetToken)
+	const payload = await User.findOne({ _id: req.user.payload._id});
+	console.log(payload);
 	if (!payload) {
 		res.status(404);
 		throw new Error("Invalid or Expired Token");
@@ -349,18 +350,18 @@ const resetPassword = asyncHandler(async (req, res) => {
 		message: "Token is valid",
 	});
 
-	const userData = payload;
-	console.log(userData)
-	const target = await User.findOne({ _id: userData._id }).select({
-		"password": 0,
-		"bio":	0
-	});
-	// const targetID = target;
-	if (!target) {
-		res.status(404);
-		throw new Error("Invalid or Expired Token");
-	}
-	console.log(target);
+	// const userData = payload;
+	// console.log(userData)
+	// const target = await User.findOne({ _id: userData._id }).select({
+	// 	"password": 0,
+	// 	"bio":	0
+	// });
+	// // const targetID = target;
+	// if (!target) {
+	// 	res.status(404);
+	// 	throw new Error("Invalid or Expired Token");
+	// }
+	// console.log(target);
 });
 
 module.exports = {
