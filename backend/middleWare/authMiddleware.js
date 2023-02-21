@@ -6,10 +6,6 @@ const { PUBLIC_KEY, PRIVATE_KEY } = require("../helper/helper");
 
  const decryptToken = async (token) => {
 	try {
-		// const { payload } = await jose.jwtDecrypt(token, publicKey, {
-		//   algorithms: ['RS256'],
-		// });
-		// return payload;
 		return jose.jwtVerify(token, await jose.importSPKI(PUBLIC_KEY, "RS256"));
 	} catch (error) {
 		console.error(error);
