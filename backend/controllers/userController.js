@@ -380,7 +380,7 @@ const resetPassword = asyncHandler(async (req, res) => {
 	// 	});
 	console.log(payload);
 
-	// Check if payload exists
+	// Check if payload exist
 	if (!payload) {
 		res.status(404);
 		throw new Error("Invalid or Expired Token");
