@@ -58,8 +58,8 @@ const Login = () => {
 
   return (
     <div className={`container ${styles.auth}`}>
-      {/* {isLoading && <Loader />} */}
-      {isLoading}
+      {isLoading && <Loader />}
+      {/* {isLoading} */}
       <Card>
         <div className={styles.form}>
           <div className="--flex-center">
